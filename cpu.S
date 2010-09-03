@@ -228,6 +228,70 @@
 	.endif
 .endm
 
+.macro OP_AND reg, byte
+	.if \byte == 4
+		teq gb_a,#0
+	.else
+		ands gb_a,gb_a,\reg,lsl #24 - \byte*8
+	.endif
+	movne gb_f,#flags_h
+	moveq gb_f,#flags_h | flags_z
+.endm
+
+.macro OP_XOR reg, byte
+	.if \byte == 4
+		mov gb_a,#0
+		mov gb_f,#flags_z
+	.else
+		eor gb_a,gb_a,\reg,lsl #24 - \byte*8
+		ands gb_a,gb_a,#0xFF << 24
+		movne gb_f,#0
+		moveq gb_f,#flags_z
+	.endif
+.endm
+	
+.macro OP_XORL reg, byte
+	eors gb_a,gb_a,\reg,lsl #24 - \byte*8
+	movne gb_f,#0
+	moveq gb_f,#flags_z
+.endm
+	
+.macro OP_OR reg, byte
+	.if \byte == 4
+		teq gb_a,#0
+	.else
+		orr gb_a,gb_a,\reg,lsl #24 - \byte*8
+		ands gb_a,gb_a,#0xFF << 24
+	.endif
+	movne gb_f,#0
+	moveq gb_f,#flags_z
+.endm
+	
+.macro OP_ORL reg, byte
+	orrs gb_a,gb_a,\reg,lsl #24 - \byte*8
+	movne gb_f,#0
+	moveq gb_f,#flags_z
+.endm
+	
+.macro OP_CP8 reg, byte
+	.if \byte == 4
+		mov gb_f,#flags_n | flags_z
+	.else
+		.if \byte > 0
+			mov r0,\reg,lsr #\byte*8
+			OP_SUB8 r0, 0
+		.else
+			mov gb_f,#flags_n
+			mov r1,gb_a,lsl #4
+			cmp gb_a,\reg,lsl #24
+			orreq gb_f,gb_f,#flags_z
+			orrcc gb_f,gb_f,#flags_c
+			cmp r1,\reg,lsl #28
+			orrcc gb_f,gb_f,#flags_h
+		.endif
+	.endif
+.endm
+	
 read_mem:
 	@Placeholder yay!
 	bx lr
@@ -1085,5 +1149,137 @@ opcode_9E: @SBC A,(HL)
 	
 opcode_9F: @SBC A,A
 	OP_SBC8 gb_a, byte_a
+	NEXT 4
+	
+opcode_A0: @AND B
+	OP_AND gb_bcde, byte_b
+	NEXT 4
+	
+opcode_A1: @AND C
+	OP_AND gb_bcde, byte_c
+	NEXT 4
+	
+opcode_A2: @AND D
+	OP_AND gb_bcde, byte_d
+	NEXT 4
+	
+opcode_A3: @AND E
+	OP_AND gb_bcde, byte_e
+	NEXT 4
+	
+opcode_A4: @AND H
+	OP_AND gb_hl, byte_h
+	NEXT 4
+	
+opcode_A5: @AND L
+	OP_AND gb_hl, byte_l
+	NEXT 4
+	
+opcode_A6: @AND (HL)
+	READHL
+	OP_AND r0, 0
+	NEXT 8
+	
+opcode_A7: @AND A
+	OP_AND gb_a, byte_a
+	NEXT 4
+	
+opcode_A8: @XOR B
+	OP_XOR gb_bcde, byte_b
+	NEXT 4
+	
+opcode_A9: @XOR C
+	OP_XOR gb_bcde, byte_c
+	NEXT 4
+	
+opcode_AA: @XOR D
+	OP_XOR gb_bcde, byte_d
+	NEXT 4
+	
+opcode_AB: @XOR E
+	OP_XORL gb_bcde, byte_e
+	NEXT 4
+	
+opcode_AC: @XOR H
+	OP_XOR gb_hl, byte_h
+	NEXT 4
+	
+opcode_AD: @XOR L
+	OP_XORL gb_hl, byte_l
+	NEXT 4
+	
+opcode_AE: @XOR (HL)
+	READHL
+	OP_XORL r0, 0
+	NEXT 8
+	
+opcode_AF: @XOR A
+	OP_XOR gb_a, byte_a
+	NEXT 4
+	
+opcode_B0: @OR B
+	OP_OR gb_bcde, byte_b
+	NEXT 4
+	
+opcode_B1: @OR C
+	OP_OR gb_bcde, byte_c
+	NEXT 4
+	
+opcode_B2: @OR D
+	OP_OR gb_bcde, byte_d
+	NEXT 4
+	
+opcode_B3: @OR E
+	OP_ORL gb_bcde, byte_e
+	NEXT 4
+	
+opcode_B4: @OR H
+	OP_OR gb_hl, byte_h
+	NEXT 4
+	
+opcode_B5: @OR L
+	OP_ORL gb_hl, byte_l
+	NEXT 4
+	
+opcode_B6: @OR (HL)
+	READHL
+	OP_ORL r0, 0
+	NEXT 8
+	
+opcode_B7: @OR A
+	OP_OR gb_a, byte_a
+	NEXT 4
+	
+opcode_B8: @CP B
+	OP_CP8 gb_bcde, byte_b
+	NEXT 4
+	
+opcode_B9: @CP C
+	OP_CP8 gb_bcde, byte_c
+	NEXT 4
+	
+opcode_BA: @CP D
+	OP_CP8 gb_bcde, byte_d
+	NEXT 4
+	
+opcode_BB: @CP E
+	OP_CP8 gb_bcde, byte_e
+	NEXT 4
+	
+opcode_BC: @CP H
+	OP_CP8 gb_hl, byte_h
+	NEXT 4
+	
+opcode_BD: @CP L
+	OP_CP8 gb_hl, byte_l
+	NEXT 4
+	
+opcode_BE: @CP (HL)
+	READHL
+	OP_CP8 r0, 0
+	NEXT 8
+	
+opcode_BF: @CP A
+	OP_CP8 gb_a, byte_a
 	NEXT 4
 	
