@@ -7,14 +7,17 @@ OBJCOPY := "$(shell which arm-elf-objcopy 2>/dev/null)"
 ifeq (${OBJCOPY},"")
 	OBJCOPY := arm-none-eabi-objcopy
 endif
-OBJS = gbc4nspire.o
+OBJS = gbc4nspire.o utils.o
 vpath %.tns  ../../res/$(NSPIRE_HARDWARE)
 
 all: gbc4nspire.tns
 
-%.o: %.S %.inc
+gbc4nspire.o: gbc4nspire.S cpu.S defines.inc
 	$(GCC) $(GCCFLAGS) -c $<
-
+	
+utils.o: utils.c defines.h
+	$(GCC) $(GCCFLAGS) -c $<
+	
 gbc4nspire.tns: $(OBJS)
 	$(LD) $^ -o $(@:.tns=.elf)
 	$(OBJCOPY) -O binary $(@:.tns=.elf) $(@:.tns=.bin)
