@@ -988,6 +988,39 @@ opcode_87: @ADD A,A
 	OP_ADD8 gb_a, byte_a
 	NEXT 4
 	
+opcode_88: @ADC A,B
+	OP_ADC8 gb_bcde, byte_b
+	NEXT 4
+	
+opcode_89: @ADC A,C
+	OP_ADC8 gb_bcde, byte_c
+	NEXT 4
+	
+opcode_8A: @ADC A,D
+	OP_ADC8 gb_bcde, byte_d
+	NEXT 4
+	
+opcode_8B: @ADC A,E
+	OP_ADC8 gb_bcde, byte_e
+	NEXT 4
+	
+opcode_8C: @ADC A,H
+	OP_ADC8 gb_hl, byte_h
+	NEXT 4
+	
+opcode_8D: @ADC A,L
+	OP_ADC8 gb_hl, byte_l
+	NEXT 4
+	
+opcode_8E: @ADC A,(HL)
+	READHL
+	OP_ADC8 r0, 0
+	NEXT 8
+	
+opcode_8F: @ADC A,A
+	OP_ADC8 gb_a, byte_a
+	NEXT 4
+	
 opcode_90: @SUB B
 	OP_SUB8 gb_bcde, byte_b
 	NEXT 4
@@ -1020,3 +1053,37 @@ opcode_96: @SUB (HL)
 opcode_97: @SUB A
 	OP_SUB8 gb_a, byte_a
 	NEXT 4
+	
+opcode_98: @SBC A,B
+	OP_SBC8 gb_bcde, byte_b
+	NEXT 4
+	
+opcode_99: @SBC A,C
+	OP_SBC8 gb_bcde, byte_c
+	NEXT 4
+	
+opcode_9A: @SBC A,D
+	OP_SBC8 gb_bcde, byte_d
+	NEXT 4
+	
+opcode_9B: @SBC A,E
+	OP_SBC8 gb_bcde, byte_e
+	NEXT 4
+	
+opcode_9C: @SBC A,H
+	OP_SBC8 gb_hl, byte_h
+	NEXT 4
+	
+opcode_9D: @SBC A,L
+	OP_SBC8 gb_hl, byte_l
+	NEXT 4
+	
+opcode_9E: @SBC A,(HL)
+	READHL
+	OP_SBC8 r0, 0
+	NEXT 8
+	
+opcode_9F: @SBC A,A
+	OP_SBC8 gb_a, byte_a
+	NEXT 4
+	
