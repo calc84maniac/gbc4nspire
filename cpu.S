@@ -1496,3 +1496,214 @@ opcode_DF: @RST 18h
 	add gb_pc,gb_pc,#0x18
 	NEXT 16
 	
+opcode_E0: @LD ($FF00+n),A
+	ldrb r0,[gb_pc],#1
+	mov r1,gb_a,lsr #24
+	orr r0,r0,#0xFF00
+	WRITEMEM
+	NEXT 12
+	
+opcode_E1: @POP HL
+	mov r0,gb_sp,lsr #16
+	READMEM_16
+	mov gb_hl,r0,lsl #16
+	add gb_sp,gb_sp,#2 << 16
+	NEXT 12
+	
+opcode_E2: @LD ($FF00+C),A
+	mov r0,gb_bcde,lsr #16
+	orr r0,r0,#0xFF00
+	mov r1,gb_a,lsr #24
+	WRITEMEM
+	NEXT 8
+	
+opcode_E3: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_E4: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_E5: @PUSH HL
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	mov r1,gb_hl,lsr #16
+	WRITEMEM_16
+	NEXT 16
+	
+opcode_E6: @AND n
+	ldrb r0,[gb_pc],#1
+	OP_AND r0, 0
+	NEXT 8
+	
+opcode_E7: @RST 20h
+	ldr r1,[gb_data,#pc_base]
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	sub r1,gb_pc,r1
+	ldr gb_pc,[gb_data,#mem_map_0000]
+	WRITEMEM_16
+	add gb_pc,gb_pc,#0x20
+	NEXT 16
+	
+opcode_E8: @ADD SP,d
+	ldrsb r0,[gb_pc],#1
+	mov r1,gb_sp,lsl #8
+	mov r2,gb_sp,lsl #12
+	mov gb_f,#0
+	cmn r1,r0,lsl #24
+	orrcs gb_f,gb_f,#flags_c
+	cmn r2,r0,lsl #28
+	orrcs gb_f,gb_f,#flags_h
+	add gb_sp,gb_sp,r0,lsl #16
+	NEXT 16
+	
+opcode_E9: @JP HL
+	and r0,gb_hl,#0xF0000000
+	ldr r0,[gb_data,r0,lsr #26]
+	add gb_pc,r0,gb_hl,lsr #16
+	NEXT 4
+	
+opcode_EA: @LD (mn),A
+	ldrb r0,[gb_pc],#1
+	ldrb r2,[gb_pc],#1
+	mov r1,gb_a,lsr #24
+	orr r0,r0,r2,lsl #8
+	WRITEMEM
+	NEXT 16
+	
+opcode_EB: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_EC: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_ED: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_EE: @XOR n
+	ldrb r0,[gb_pc],#1
+	OP_XORL r0, 0
+	NEXT 8
+	
+opcode_EF: @RST 28h
+	ldr r1,[gb_data,#pc_base]
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	sub r1,gb_pc,r1
+	ldr gb_pc,[gb_data,#mem_map_0000]
+	WRITEMEM_16
+	add gb_pc,gb_pc,#0x28
+	NEXT 16
+	
+opcode_F0: @LD A,($FF00+n)
+	ldrb r0,[gb_pc],#1
+	orr r0,r0,#0xFF00
+	READMEM
+	mov gb_a,r0,lsl #24
+	NEXT 12
+	
+opcode_F1: @POP AF
+	mov r0,gb_sp,lsr #16
+	READMEM_16
+	mov gb_a,r0,lsl #16
+	and gb_a,gb_a,#0xFF << 24
+	mov gb_f,r0,lsl #24
+	and gb_f,gb_f,#flags_z | flags_n | flags_h | flags_c
+	add gb_sp,gb_sp,#2 << 16
+	NEXT 12
+	
+opcode_F2: @LD A,($FF00+C)
+	mov r0,gb_bcde,lsr #16
+	orr r0,r0,#0xFF00
+	READMEM
+	mov gb_a,r0,lsl #24
+	NEXT 8
+	
+opcode_F3: @DI
+	mov r0,#0
+	str r0,[gb_data,#IFF]
+	NEXT 4
+	
+opcode_F4: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_F5: @PUSH AF
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	mov r1,gb_a,lsr #16
+	orr r1,r1,gb_f,lsr #24
+	WRITEMEM_16
+	NEXT 16
+	
+opcode_F6: @OR n
+	ldrb r0,[gb_pc],#1
+	OP_ORL r0, 0
+	NEXT 8
+	
+opcode_F7: @RST 30h
+	ldr r1,[gb_data,#pc_base]
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	sub r1,gb_pc,r1
+	ldr gb_pc,[gb_data,#mem_map_0000]
+	WRITEMEM_16
+	add gb_pc,gb_pc,#0x30
+	NEXT 16
+	
+opcode_F8: @LD HL,SP+d
+	ldrsb r0,[gb_pc],#1
+	mov r1,gb_sp,lsl #8
+	mov r2,gb_sp,lsl #12
+	mov gb_f,#0
+	cmn r1,r0,lsl #24
+	orrcs gb_f,gb_f,#flags_c
+	cmn r2,r0,lsl #28
+	orrcs gb_f,gb_f,#flags_h
+	add gb_hl,gb_sp,r0,lsl #16
+	NEXT 12
+	
+opcode_F9: @LD SP,HL
+	mov gb_sp,gb_hl
+	NEXT 8
+	
+opcode_FA: @LD A,(mn)
+	ldrb r0,[gb_pc],#1
+	ldrb r1,[gb_pc],#1
+	orr r0,r0,r1,lsl #8
+	WRITEMEM
+	mov gb_a,r0,lsl #24
+	NEXT 16
+	
+opcode_FB: @EI
+	mov r0,#1
+	str r0,[gb_data,#IFF]
+	NEXT 4
+	
+opcode_FC: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_FD: @INVALID
+	sub gb_pc,gb_pc,#1
+	NEXT 4
+	
+opcode_FE: @CP n
+	ldrb r0,[gb_pc],#1
+	OP_CP8 r0, 0
+	NEXT 8
+	
+opcode_FF: @RST 38h
+	ldr r1,[gb_data,#pc_base]
+	sub gb_sp,gb_sp,#2 << 16
+	mov r0,gb_sp,lsr #16
+	sub r1,gb_pc,r1
+	ldr gb_pc,[gb_data,#mem_map_0000]
+	WRITEMEM_16
+	add gb_pc,gb_pc,#0x38
+	NEXT 16
