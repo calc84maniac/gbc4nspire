@@ -167,7 +167,7 @@
 		orrne gb_f,gb_f,#flags_h
 	.else
 		#Get carry flag
-		tst gb_f,gb_f,lsl #4
+		tst gb_f,gb_f,lsr #5
 		.if \byte > 0
 			#Shift A to LSB
 			mov gb_a,gb_a,lsr #24
@@ -202,7 +202,7 @@
 		movne gb_f,#flags_n | flags_c | flags_h
 	.else
 		#Get carry flag
-		tst gb_f,gb_f,lsl #4
+		tst gb_f,gb_f,lsr #5
 		.if \byte > 0
 			#Shift A to LSB
 			mov gb_a,gb_a,lsr #24
@@ -393,11 +393,11 @@ opcode_0E: @LD C,n
 	NEXT 8
 	
 opcode_0F: @RRCA
-	movs gb_a,gb_a,lsr #25
-	orrcs gb_a,gb_a,#1 << 7
+	tst gb_a,gb_a,lsl #8
 	movcc gb_f,#0
 	movcs gb_f,#flags_c
-	mov gb_a,gb_a,lsl #24
+	bic gb_a,gb_a,#1 << 24
+	mov gb_a,gb_a,rrx
 	NEXT 4
 	
 opcode_10: @STOP
@@ -483,7 +483,7 @@ opcode_1E: @LD E,n
 	
 opcode_1F: @RRA
 	@Get carry flag
-	tst gb_f,gb_f,lsl #4
+	tst gb_f,gb_f,lsr #5
 	mov gb_a,gb_a,rrx
 	tst gb_a,#1 << 23
 	bic gb_a,gb_a,#1 << 23
@@ -529,11 +529,11 @@ opcode_27: @DAA
 	mov r0,#0
 	mov r1,#0x9FFFFFFF
 	
-	tst gb_f,#flags_h @C is reset after this by the calculation of immediate value
+	tst gb_f,#flags_h << 2,2 @C is reset after this by the calculation of immediate value
 	cmpeq r1,gb_a,lsl #4
 	addlo r0,r0,#0x06 << 23
 	
-	tst gb_f,#flags_c @C is reset after this, too
+	tst gb_f,#flags_c << 2,2 @C is reset after this, too
 	cmpeq r1,gb_a
 	addlo r0,r0,#0x60 << 23
 	
@@ -1612,8 +1612,7 @@ opcode_F1: @POP AF
 	READMEM_16
 	mov gb_a,r0,lsl #16
 	and gb_a,gb_a,#0xFF << 24
-	mov gb_f,r0,lsl #24
-	and gb_f,gb_f,#flags_z | flags_n | flags_h | flags_c
+	and gb_f,r0,#flags_z | flags_n | flags_h | flags_c
 	add gb_sp,gb_sp,#2 << 16
 	NEXT 12
 	
@@ -1636,8 +1635,7 @@ opcode_F4: @INVALID
 opcode_F5: @PUSH AF
 	sub gb_sp,gb_sp,#2 << 16
 	mov r0,gb_sp,lsr #16
-	mov r1,gb_a,lsr #16
-	orr r1,r1,gb_f,lsr #24
+	orr r1,gb_f,gb_a,lsr #16
 	WRITEMEM_16
 	NEXT 16
 	
@@ -1707,3 +1705,315 @@ opcode_FF: @RST 38h
 	WRITEMEM_16
 	add gb_pc,gb_pc,#0x38
 	NEXT 16
+
+.macro OP_RLC reg, byte
+	.if \byte == 4
+		movs gb_a,gb_a,lsl #1
+		movcc gb_f,#0
+		movcs gb_f,#flags_c
+		orrcss gb_a,gb_a,#1 << 24
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			tst \reg,\reg,lsr #8
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			adc \reg,\reg,\reg
+			ands \reg,\reg,#0xFF
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 3
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << 24
+				eors \reg,r1,\reg,lsl #1
+				biccc \reg,\reg,#1 << 24
+				orrcs \reg,\reg,#1 << 24
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.else
+				tst \reg,#1 << (\byte*8 + 7)
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsl #1
+				.if \byte > 0
+					biceq \reg,\reg,#1 << (\byte*8)
+				.endif
+				orrne \reg,\reg,#1 << (\byte*8)
+				moveq gb_f,#0
+				movne gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_RRC reg, byte
+	.if \byte == 4
+		tst \reg,\reg,lsl #8
+		movcc gb_f,#0
+		movcs gb_f,#flags_c
+		bic \reg,\reg,#1 << 24
+		movs \reg,\reg,rrx
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			movs r1,\reg,lsr #1
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			orrcss r1,r1,#1 << 7
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 0
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF
+				eors \reg,r1,\reg,lsr #1
+				biccc \reg,\reg,#1 << 7
+				orrcs \reg,\reg,#1 << 7
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.else
+				tst \reg,#1 << (\byte*8)
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsr #1
+				.if \byte < 3
+					biceq \reg,\reg,#1 << (\byte*8 + 7)
+				.endif
+				orrne \reg,\reg,#1 << (\byte*8 + 7)
+				moveq gb_f,#0
+				movne gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_RL reg, byte
+	.if \byte == 4
+		tst gb_f,#flags_c
+		orrne gb_a,gb_a,#1 << 23
+		movs gb_a,gb_a,lsl #1
+		movcc gb_f,#0
+		movcs gb_f,#flags_c
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			tst gb_f,gb_f,lsr #5
+			tst \reg,#1 << 7
+			moveq gb_f,#0
+			movne gb_f,#flags_c
+			adc \reg,\reg,\reg
+			ands \reg,\reg,#0xFF
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 3
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << 24
+				tst gb_f,#flags_c
+				biceq \reg,\reg,#1 << 23
+				orrne \reg,\reg,#1 << 23
+				eors \reg,r1,\reg,lsl #1
+			.else
+				tst \reg,\reg,lsl #25 - \byte*8
+				tst gb_f,#flags_c
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsl #1
+				.if \byte > 0
+					biceq \reg,\reg,#1 << (\byte*8)
+				.endif
+				orrne \reg,\reg,#1 << (\byte*8)
+			.endif
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_RR reg, byte
+	.if \byte == 4
+		tst \reg,\reg,lsl #8
+		tst gb_f,#flags_c
+		movcc gb_f,#0
+		movcs gb_f,#flags_c
+		mov \reg,\reg,lsr #1
+		orrne \reg,\reg,#1 << 31
+		ands \reg,\reg,#0xFF << 24
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			movs r1,\reg,lsr #1
+			tst gb_f,#flags_c
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			orrnes r1,r1,#1 << 7
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 0
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF
+				eors \reg,r1,\reg,lsr #1
+				tst gb_f,#flags_c
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+				biceq \reg,\reg,#1 << 7
+				orrne \reg,\reg,#1 << 7
+			.else
+				tst \reg,\reg,lsr #1 + \byte*8
+				tst gb_f,#flags_c
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsr #1
+				.if \byte < 3
+					biceq \reg,\reg,#1 << (\byte*8 + 7)
+				.endif
+				orrne \reg,\reg,#1 << (\byte*8 + 7)
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+bitop_00: @RLC B
+	OP_RLC gb_bcde, byte_b
+	NEXT 8
+	
+bitop_01: @RLC C
+	OP_RLC gb_bcde, byte_c
+	NEXT 8
+	
+bitop_02: @RLC D
+	OP_RLC gb_bcde, byte_d
+	NEXT 8
+	
+bitop_03: @RLC E
+	OP_RLC gb_bcde, byte_e
+	NEXT 8
+	
+bitop_04: @RLC H
+	OP_RLC gb_hl, byte_h
+	NEXT 8
+	
+bitop_05: @RLC L
+	OP_RLC gb_hl, byte_l
+	NEXT 8
+	
+bitop_06: @RLC (HL)
+	READHL
+	OP_RLC r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_07: @RLC A
+	OP_RLC gb_a, byte_a
+	NEXT 8
+	
+bitop_08: @RRC B
+	OP_RRC gb_bcde, byte_b
+	NEXT 8
+	
+bitop_09: @RRC C
+	OP_RRC gb_bcde, byte_c
+	NEXT 8
+	
+bitop_0A: @RRC D
+	OP_RRC gb_bcde, byte_d
+	NEXT 8
+	
+bitop_0B: @RRC E
+	OP_RRC gb_bcde, byte_e
+	NEXT 8
+	
+bitop_0C: @RRC H
+	OP_RRC gb_hl, byte_h
+	NEXT 8
+	
+bitop_0D: @RRC L
+	OP_RRC gb_hl, byte_l
+	NEXT 8
+	
+bitop_0E: @RRC (HL)
+	READHL
+	OP_RRC r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_0F: @RRC A
+	OP_RRC gb_a, byte_a
+	NEXT 8
+	
+bitop_10: @RL B
+	OP_RL gb_bcde, byte_b
+	NEXT 8
+	
+bitop_11: @RL C
+	OP_RL gb_bcde, byte_c
+	NEXT 8
+	
+bitop_12: @RL D
+	OP_RL gb_bcde, byte_d
+	NEXT 8
+	
+bitop_13: @RL E
+	OP_RL gb_bcde, byte_e
+	NEXT 8
+	
+bitop_14: @RL H
+	OP_RL gb_hl, byte_h
+	NEXT 8
+	
+bitop_15: @RL L
+	OP_RL gb_hl, byte_l
+	NEXT 8
+	
+bitop_16: @RL (HL)
+	READHL
+	OP_RL r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_17: @RL A
+	OP_RL gb_a, byte_a
+	NEXT 8
+	
+bitop_18: @RR B
+	OP_RR gb_bcde, byte_b
+	NEXT 8
+	
+bitop_19: @RR C
+	OP_RR gb_bcde, byte_c
+	NEXT 8
+	
+bitop_1A: @RR D
+	OP_RR gb_bcde, byte_d
+	NEXT 8
+	
+bitop_1B: @RR E
+	OP_RR gb_bcde, byte_e
+	NEXT 8
+	
+bitop_1C: @RR H
+	OP_RR gb_hl, byte_h
+	NEXT 8
+	
+bitop_1D: @RR L
+	OP_RR gb_hl, byte_l
+	NEXT 8
+	
+bitop_1E: @RR (HL)
+	READHL
+	OP_RR r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_1F: @RR A
+	OP_RR gb_a, byte_a
+	NEXT 8
+	

@@ -45,10 +45,10 @@ gb_data .req r11
 .equ word_sp, 2
 
 /* GBZ80 flags */
-.equ flags_z, 1 << 31
-.equ flags_n, 1 << 30
-.equ flags_h, 1 << 29
-.equ flags_c, 1 << 28
+.equ flags_z, 1 << 7
+.equ flags_n, 1 << 6
+.equ flags_h, 1 << 5
+.equ flags_c, 1 << 4
 	
 /* Control register definitions */
 .equ CONTROL_IRQ, 0x80
