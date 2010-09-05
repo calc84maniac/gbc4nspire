@@ -1,3 +1,25 @@
+/* gb_data struct offsets */
+.equ mem_map_0000, 0x000
+.equ mem_map_1000, 0x004
+.equ mem_map_2000, 0x008
+.equ mem_map_3000, 0x00C
+.equ mem_map_4000, 0x010
+.equ mem_map_5000, 0x014
+.equ mem_map_6000, 0x018
+.equ mem_map_7000, 0x01C
+.equ mem_map_8000, 0x020
+.equ mem_map_9000, 0x024
+.equ mem_map_A000, 0x028
+.equ mem_map_B000, 0x02C
+.equ mem_map_C000, 0x030
+.equ mem_map_D000, 0x034
+.equ mem_map_E000, 0x038
+.equ mem_map_F000, 0x03C
+.equ pc_base, 0x040
+.equ IFF, 0x044
+
+
+/* GBZ80 register aliases */
 gb_a .req r4
 gb_bcde .req r5
 gb_hl .req r6
@@ -7,6 +29,7 @@ gb_pc .req r9
 gb_cycles .req r10
 gb_data .req r11
 	
+/* GBZ80 register byte identifiers */
 .equ byte_a, 4
 .equ byte_b, 3
 .equ byte_c, 2
@@ -15,11 +38,13 @@ gb_data .req r11
 .equ byte_h, 3
 .equ byte_l, 2
 	
+/* GBZ80 register word identifiers */
 .equ word_bc, 1
 .equ word_de, 0
 .equ word_hl, 2
 .equ word_sp, 2
 
+/* GBZ80 flags */
 .equ flags_z, 1 << 31
 .equ flags_n, 1 << 30
 .equ flags_h, 1 << 29

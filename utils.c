@@ -1,6 +1,30 @@
 #include <os.h>
 #include "defines.h"
 
+struct gb_data
+{
+	char* mem_map_0000;
+	char* mem_map_1000;
+	char* mem_map_2000;
+	char* mem_map_3000;
+	char* mem_map_4000;
+	char* mem_map_5000;
+	char* mem_map_6000;
+	char* mem_map_7000;
+	char* mem_map_8000;
+	char* mem_map_9000;
+	char* mem_map_A000;
+	char* mem_map_B000;
+	char* mem_map_C000;
+	char* mem_map_D000;
+	char* mem_map_E000;
+	char* mem_map_F000;
+	
+	char* pc_base;
+	int IFF;
+	
+};
+	
 struct os_state
 {
 	int clock_speed;
