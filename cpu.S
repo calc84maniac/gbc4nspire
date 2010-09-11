@@ -1719,7 +1719,7 @@ opcode_FF: @RST 38h
 			movcc gb_f,#0
 			movcs gb_f,#flags_c
 			adc \reg,\reg,\reg
-			ands \reg,\reg,#0xFF
+			ands r1,\reg,#0xFF
 			orreq gb_f,gb_f,#flags_z
 		.else
 			.if \byte == 3
@@ -1805,7 +1805,7 @@ opcode_FF: @RST 38h
 			moveq gb_f,#0
 			movne gb_f,#flags_c
 			adc \reg,\reg,\reg
-			ands \reg,\reg,#0xFF
+			ands r1,\reg,#0xFF
 			orreq gb_f,gb_f,#flags_z
 		.else
 			.if \byte == 3
@@ -1881,6 +1881,179 @@ opcode_FF: @RST 38h
 	.endif
 .endm
 
+.macro OP_SLA reg, byte
+	.if \byte == 4
+		movs gb_a,gb_a,lsl #1
+		movcc gb_f,#0
+		movcs gb_f,#flags_c
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			movs \reg,\reg,lsl #25
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			orreq gb_f,gb_f,#flags_z
+			mov r1,\reg,lsr #24
+		.else
+			.if \byte == 3
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << 24
+				eors \reg,r1,\reg,lsl #1
+				bic \reg,\reg,#1 << 24
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.else
+				tst \reg,#1 << (\byte*8 + 7)
+				eor r1,\reg,\reg,lsl #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsl #1
+				.if \byte > 0
+					bic \reg,\reg,#1 << (\byte*8)
+				.endif
+				moveq gb_f,#0
+				movne gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_SRA reg, byte
+	.if \byte == 4
+		tst \reg,#1 << 24
+		moveq gb_f,#0
+		movne gb_f,#flags_c
+		bic \reg,\reg,#1 << 24
+		movs \reg,\reg,asr #1
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			mov r1,\reg,lsl #24
+			movs r1,r1,asr #25
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 0
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0x7F
+				eors \reg,r1,\reg,lsr #1
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.else
+				tst \reg,#1 << (\byte*8)
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0x7F << (\byte*8)
+				eor \reg,r1,\reg,lsr #1
+				moveq gb_f,#0
+				movne gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_SWAP reg, byte
+	.if \byte == 4
+		mov r1,\reg,lsl #4
+		orr \reg,r1,\reg,lsr #4
+		ands \reg,\reg,#0xFF << 24
+		movne gb_f,#0
+		moveq gb_f,#flags_z
+	.else
+		.if \byte < 0
+			mov r1,\reg,lsl #4
+			orr r1,r1,\reg,lsr #4
+			ands r1,r1,#0xFF
+			movne gb_f,#0
+			moveq gb_f,#flags_z
+		.else
+			and r1,\reg,#0xFF << (\byte*8)
+			mov r0,r1,lsl #4
+			orr r0,r0,r1,lsr #4
+			ands r0,r0,#0xFF << (\byte*8)
+			bic \reg,\reg,#0xFF << (\byte*8)
+			orr \reg,\reg,r0,lsl #\byte*8
+			movne gb_f,#0
+			moveq gb_f,#flags_z
+		.endif
+	.endif
+.endm
+	
+.macro OP_SRL reg, byte
+	.if \byte == 4
+		tst \reg,#1 << 24
+		moveq gb_f,#0
+		movne gb_f,#flags_c
+		bic \reg,\reg,#1 << 24
+		movs \reg,\reg,lsr #1
+		orreq gb_f,gb_f,#flags_z
+	.else
+		.if \byte < 0
+			movs r1,\reg,lsr #1
+			movcc gb_f,#0
+			movcs gb_f,#flags_c
+			orreq gb_f,gb_f,#flags_z
+		.else
+			.if \byte == 0
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF
+				eors \reg,r1,\reg,lsr #1
+				bic \reg,\reg,#1 << 7
+				movcc gb_f,#0
+				movcs gb_f,#flags_c
+			.else
+				tst \reg,#1 << (\byte*8)
+				eor r1,\reg,\reg,lsr #1
+				bic r1,r1,#0xFF << (\byte*8)
+				eor \reg,r1,\reg,lsr #1
+				bic \reg,\reg,#1 << (\byte*8 + 7)
+				moveq gb_f,#0
+				movne gb_f,#flags_c
+			.endif
+			tst \reg,#0xFF << (\byte*8)
+			orreq gb_f,gb_f,#flags_z
+		.endif
+	.endif
+.endm
+
+.macro OP_BIT reg, byte, bit
+	and gb_f,gb_f,#flags_c
+	.if \byte == 4
+		tst \reg,#1 << (24 + \bit)
+	.else
+		tst \reg,#1 << (\byte*8 + \bit)
+	.endif
+	orreq gb_f,gb_f,#flags_h
+	orrne gb_f,gb_f,#flags_h | flags_z
+.endm
+
+.macro OP_RES reg, byte, bit
+	.if \byte == 4
+		bic \reg,\reg,#1 << (24 + \bit)
+	.else
+		.if \byte < 0
+			bic r1,\reg,#1 << \bit
+		.else
+			bic \reg,\reg,#1 << (\byte*8 + \bit)
+		.endif
+	.endif
+.endm
+
+.macro OP_SET reg, byte, bit
+	.if \byte == 4
+		orr \reg,\reg,#1 << (24 + \bit)
+	.else
+		.if \byte < 0
+			orr r1,\reg,#1 << \bit
+		.else
+			orr \reg,\reg,#1 << (\byte*8 + \bit)
+		.endif
+	.endif
+.endm
+	
 bitop_00: @RLC B
 	OP_RLC gb_bcde, byte_b
 	NEXT 8
@@ -2015,5 +2188,949 @@ bitop_1E: @RR (HL)
 	
 bitop_1F: @RR A
 	OP_RR gb_a, byte_a
+	NEXT 8
+	
+bitop_20: @SLA B
+	OP_SLA gb_bcde, byte_b
+	NEXT 8
+	
+bitop_21: @SLA C
+	OP_SLA gb_bcde, byte_c
+	NEXT 8
+	
+bitop_22: @SLA D
+	OP_SLA gb_bcde, byte_d
+	NEXT 8
+	
+bitop_23: @SLA E
+	OP_SLA gb_bcde, byte_e
+	NEXT 8
+	
+bitop_24: @SLA H
+	OP_SLA gb_hl, byte_h
+	NEXT 8
+	
+bitop_25: @SLA L
+	OP_SLA gb_hl, byte_l
+	NEXT 8
+	
+bitop_26: @SLA (HL)
+	READHL
+	OP_SLA r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_27: @SLA A
+	OP_SLA gb_a, byte_a
+	NEXT 8
+	
+bitop_28: @SRA B
+	OP_SRA gb_bcde, byte_b
+	NEXT 8
+	
+bitop_29: @SRA C
+	OP_SRA gb_bcde, byte_c
+	NEXT 8
+	
+bitop_2A: @SRA D
+	OP_SRA gb_bcde, byte_d
+	NEXT 8
+	
+bitop_2B: @SRA E
+	OP_SRA gb_bcde, byte_e
+	NEXT 8
+	
+bitop_2C: @SRA H
+	OP_SRA gb_hl, byte_h
+	NEXT 8
+	
+bitop_2D: @SRA L
+	OP_SRA gb_hl, byte_l
+	NEXT 8
+	
+bitop_2E: @SRA (HL)
+	READHL
+	OP_SRA r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_2F: @SRA A
+	OP_SRA gb_a, byte_a
+	NEXT 8
+	
+bitop_30: @SWAP B
+	OP_SWAP gb_bcde, byte_b
+	NEXT 8
+	
+bitop_31: @SWAP C
+	OP_SWAP gb_bcde, byte_c
+	NEXT 8
+	
+bitop_32: @SWAP D
+	OP_SWAP gb_bcde, byte_d
+	NEXT 8
+	
+bitop_33: @SWAP E
+	OP_SWAP gb_bcde, byte_e
+	NEXT 8
+	
+bitop_34: @SWAP H
+	OP_SWAP gb_hl, byte_h
+	NEXT 8
+	
+bitop_35: @SWAP L
+	OP_SWAP gb_hl, byte_l
+	NEXT 8
+	
+bitop_36: @SWAP (HL)
+	READHL
+	OP_SWAP r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_37: @SWAP A
+	OP_SWAP gb_a, byte_a
+	NEXT 8
+	
+bitop_38: @SRL B
+	OP_SRL gb_bcde, byte_b
+	NEXT 8
+	
+bitop_39: @SRL C
+	OP_SRL gb_bcde, byte_c
+	NEXT 8
+	
+bitop_3A: @SRL D
+	OP_SRL gb_bcde, byte_d
+	NEXT 8
+	
+bitop_3B: @SRL E
+	OP_SRL gb_bcde, byte_e
+	NEXT 8
+	
+bitop_3C: @SRL H
+	OP_SRL gb_hl, byte_h
+	NEXT 8
+	
+bitop_3D: @SRL L
+	OP_SRL gb_hl, byte_l
+	NEXT 8
+	
+bitop_3E: @SRL (HL)
+	READHL
+	OP_SRL r0, -1
+	WRITEHL
+	NEXT 16
+	
+bitop_3F: @SRL A
+	OP_SRL gb_a, byte_a
+	NEXT 8
+	
+bitop_40: @BIT 0,B
+	OP_BIT gb_bcde, byte_b, 0
+	NEXT 8
+	
+bitop_41: @BIT 0,C
+	OP_BIT gb_bcde, byte_c, 0
+	NEXT 8
+	
+bitop_42: @BIT 0,D
+	OP_BIT gb_bcde, byte_d, 0
+	NEXT 8
+	
+bitop_43: @BIT 0,E
+	OP_BIT gb_bcde, byte_e, 0
+	NEXT 8
+	
+bitop_44: @BIT 0,H
+	OP_BIT gb_hl, byte_h, 0
+	NEXT 8
+	
+bitop_45: @BIT 0,L
+	OP_BIT gb_hl, byte_l, 0
+	NEXT 8
+	
+bitop_46: @BIT 0,(HL)
+	READHL
+	OP_BIT r0, 0, 0
+	NEXT 12
+	
+bitop_47: @BIT 0,A
+	OP_BIT gb_a, byte_a, 0
+	NEXT 8
+	
+bitop_48: @BIT 1,B
+	OP_BIT gb_bcde, byte_b, 1
+	NEXT 8
+	
+bitop_49: @BIT 1,C
+	OP_BIT gb_bcde, byte_c, 1
+	NEXT 8
+	
+bitop_4A: @BIT 1,D
+	OP_BIT gb_bcde, byte_d, 1
+	NEXT 8
+	
+bitop_4B: @BIT 1,E
+	OP_BIT gb_bcde, byte_e, 1
+	NEXT 8
+	
+bitop_4C: @BIT 1,H
+	OP_BIT gb_hl, byte_h, 1
+	NEXT 8
+	
+bitop_4D: @BIT 1,L
+	OP_BIT gb_hl, byte_l, 1
+	NEXT 8
+	
+bitop_4E: @BIT 1,(HL)
+	READHL
+	OP_BIT r0, 0, 1
+	NEXT 12
+	
+bitop_4F: @BIT 1,A
+	OP_BIT gb_a, byte_a, 1
+	NEXT 8
+	
+bitop_50: @BIT 2,B
+	OP_BIT gb_bcde, byte_b, 2
+	NEXT 8
+	
+bitop_51: @BIT 2,C
+	OP_BIT gb_bcde, byte_c, 2
+	NEXT 8
+	
+bitop_52: @BIT 2,D
+	OP_BIT gb_bcde, byte_d, 2
+	NEXT 8
+	
+bitop_53: @BIT 2,E
+	OP_BIT gb_bcde, byte_e, 2
+	NEXT 8
+	
+bitop_54: @BIT 2,H
+	OP_BIT gb_hl, byte_h, 2
+	NEXT 8
+	
+bitop_55: @BIT 2,L
+	OP_BIT gb_hl, byte_l, 2
+	NEXT 8
+	
+bitop_56: @BIT 2,(HL)
+	READHL
+	OP_BIT r0, 0, 2
+	NEXT 12
+	
+bitop_57: @BIT 2,A
+	OP_BIT gb_a, byte_a, 2
+	NEXT 8
+	
+bitop_58: @BIT 3,B
+	OP_BIT gb_bcde, byte_b, 3
+	NEXT 8
+	
+bitop_59: @BIT 3,C
+	OP_BIT gb_bcde, byte_c, 3
+	NEXT 8
+	
+bitop_5A: @BIT 3,D
+	OP_BIT gb_bcde, byte_d, 3
+	NEXT 8
+	
+bitop_5B: @BIT 3,E
+	OP_BIT gb_bcde, byte_e, 3
+	NEXT 8
+	
+bitop_5C: @BIT 3,H
+	OP_BIT gb_hl, byte_h, 3
+	NEXT 8
+	
+bitop_5D: @BIT 3,L
+	OP_BIT gb_hl, byte_l, 3
+	NEXT 8
+	
+bitop_5E: @BIT 3,(HL)
+	READHL
+	OP_BIT r0, 0, 3
+	NEXT 12
+	
+bitop_5F: @BIT 3,A
+	OP_BIT gb_a, byte_a, 3
+	NEXT 8
+	
+bitop_60: @BIT 4,B
+	OP_BIT gb_bcde, byte_b, 4
+	NEXT 8
+	
+bitop_61: @BIT 4,C
+	OP_BIT gb_bcde, byte_c, 4
+	NEXT 8
+	
+bitop_62: @BIT 4,D
+	OP_BIT gb_bcde, byte_d, 4
+	NEXT 8
+	
+bitop_63: @BIT 4,E
+	OP_BIT gb_bcde, byte_e, 4
+	NEXT 8
+	
+bitop_64: @BIT 4,H
+	OP_BIT gb_hl, byte_h, 4
+	NEXT 8
+	
+bitop_65: @BIT 4,L
+	OP_BIT gb_hl, byte_l, 4
+	NEXT 8
+	
+bitop_66: @BIT 4,(HL)
+	READHL
+	OP_BIT r0, 0, 4
+	NEXT 12
+	
+bitop_67: @BIT 4,A
+	OP_BIT gb_a, byte_a, 4
+	NEXT 8
+	
+bitop_68: @BIT 5,B
+	OP_BIT gb_bcde, byte_b, 5
+	NEXT 8
+	
+bitop_69: @BIT 5,C
+	OP_BIT gb_bcde, byte_c, 5
+	NEXT 8
+	
+bitop_6A: @BIT 5,D
+	OP_BIT gb_bcde, byte_d, 5
+	NEXT 8
+	
+bitop_6B: @BIT 5,E
+	OP_BIT gb_bcde, byte_e, 5
+	NEXT 8
+	
+bitop_6C: @BIT 5,H
+	OP_BIT gb_hl, byte_h, 5
+	NEXT 8
+	
+bitop_6D: @BIT 5,L
+	OP_BIT gb_hl, byte_l, 5
+	NEXT 8
+	
+bitop_6E: @BIT 5,(HL)
+	READHL
+	OP_BIT r0, 0, 5
+	NEXT 12
+	
+bitop_6F: @BIT 5,A
+	OP_BIT gb_a, byte_a, 5
+	NEXT 8
+	
+bitop_70: @BIT 6,B
+	OP_BIT gb_bcde, byte_b, 6
+	NEXT 8
+	
+bitop_71: @BIT 6,C
+	OP_BIT gb_bcde, byte_c, 6
+	NEXT 8
+	
+bitop_72: @BIT 6,D
+	OP_BIT gb_bcde, byte_d, 6
+	NEXT 8
+	
+bitop_73: @BIT 6,E
+	OP_BIT gb_bcde, byte_e, 6
+	NEXT 8
+	
+bitop_74: @BIT 6,H
+	OP_BIT gb_hl, byte_h, 6
+	NEXT 8
+	
+bitop_75: @BIT 6,L
+	OP_BIT gb_hl, byte_l, 6
+	NEXT 8
+	
+bitop_76: @BIT 6,(HL)
+	READHL
+	OP_BIT r0, 0, 6
+	NEXT 12
+	
+bitop_77: @BIT 6,A
+	OP_BIT gb_a, byte_a, 6
+	NEXT 8
+	
+bitop_78: @BIT 7,B
+	OP_BIT gb_bcde, byte_b, 7
+	NEXT 8
+	
+bitop_79: @BIT 7,C
+	OP_BIT gb_bcde, byte_c, 7
+	NEXT 8
+	
+bitop_7A: @BIT 7,D
+	OP_BIT gb_bcde, byte_d, 7
+	NEXT 8
+	
+bitop_7B: @BIT 7,E
+	OP_BIT gb_bcde, byte_e, 7
+	NEXT 8
+	
+bitop_7C: @BIT 7,H
+	OP_BIT gb_hl, byte_h, 7
+	NEXT 8
+	
+bitop_7D: @BIT 7,L
+	OP_BIT gb_hl, byte_l, 7
+	NEXT 8
+	
+bitop_7E: @BIT 7,(HL)
+	READHL
+	OP_BIT r0, 0, 7
+	NEXT 12
+	
+bitop_7F: @BIT 7,A
+	OP_BIT gb_a, byte_a, 7
+	NEXT 8
+	
+bitop_80: @RES 0,B
+	OP_RES gb_bcde, byte_b, 0
+	NEXT 8
+	
+bitop_81: @RES 0,C
+	OP_RES gb_bcde, byte_c, 0
+	NEXT 8
+	
+bitop_82: @RES 0,D
+	OP_RES gb_bcde, byte_d, 0
+	NEXT 8
+	
+bitop_83: @RES 0,E
+	OP_RES gb_bcde, byte_e, 0
+	NEXT 8
+	
+bitop_84: @RES 0,H
+	OP_RES gb_hl, byte_h, 0
+	NEXT 8
+	
+bitop_85: @RES 0,L
+	OP_RES gb_hl, byte_l, 0
+	NEXT 8
+	
+bitop_86: @RES 0,(HL)
+	READHL
+	OP_RES r0, 0, 0
+	WRITEHL
+	NEXT 16
+	
+bitop_87: @RES 0,A
+	OP_RES gb_a, byte_a, 0
+	NEXT 8
+	
+bitop_88: @RES 1,B
+	OP_RES gb_bcde, byte_b, 1
+	NEXT 8
+	
+bitop_89: @RES 1,C
+	OP_RES gb_bcde, byte_c, 1
+	NEXT 8
+	
+bitop_8A: @RES 1,D
+	OP_RES gb_bcde, byte_d, 1
+	NEXT 8
+	
+bitop_8B: @RES 1,E
+	OP_RES gb_bcde, byte_e, 1
+	NEXT 8
+	
+bitop_8C: @RES 1,H
+	OP_RES gb_hl, byte_h, 1
+	NEXT 8
+	
+bitop_8D: @RES 1,L
+	OP_RES gb_hl, byte_l, 1
+	NEXT 8
+	
+bitop_8E: @RES 1,(HL)
+	READHL
+	OP_RES r0, 0, 1
+	WRITEHL
+	NEXT 16
+	
+bitop_8F: @RES 1,A
+	OP_RES gb_a, byte_a, 1
+	NEXT 8
+	
+bitop_90: @RES 2,B
+	OP_RES gb_bcde, byte_b, 2
+	NEXT 8
+	
+bitop_91: @RES 2,C
+	OP_RES gb_bcde, byte_c, 2
+	NEXT 8
+	
+bitop_92: @RES 2,D
+	OP_RES gb_bcde, byte_d, 2
+	NEXT 8
+	
+bitop_93: @RES 2,E
+	OP_RES gb_bcde, byte_e, 2
+	NEXT 8
+	
+bitop_94: @RES 2,H
+	OP_RES gb_hl, byte_h, 2
+	NEXT 8
+	
+bitop_95: @RES 2,L
+	OP_RES gb_hl, byte_l, 2
+	NEXT 8
+	
+bitop_96: @RES 2,(HL)
+	READHL
+	OP_RES r0, 0, 2
+	WRITEHL
+	NEXT 16
+	
+bitop_97: @RES 2,A
+	OP_RES gb_a, byte_a, 2
+	NEXT 8
+	
+bitop_98: @RES 3,B
+	OP_RES gb_bcde, byte_b, 3
+	NEXT 8
+	
+bitop_99: @RES 3,C
+	OP_RES gb_bcde, byte_c, 3
+	NEXT 8
+	
+bitop_9A: @RES 3,D
+	OP_RES gb_bcde, byte_d, 3
+	NEXT 8
+	
+bitop_9B: @RES 3,E
+	OP_RES gb_bcde, byte_e, 3
+	NEXT 8
+	
+bitop_9C: @RES 3,H
+	OP_RES gb_hl, byte_h, 3
+	NEXT 8
+	
+bitop_9D: @RES 3,L
+	OP_RES gb_hl, byte_l, 3
+	NEXT 8
+	
+bitop_9E: @RES 3,(HL)
+	READHL
+	OP_RES r0, 0, 3
+	WRITEHL
+	NEXT 16
+	
+bitop_9F: @RES 3,A
+	OP_RES gb_a, byte_a, 3
+	NEXT 8
+	
+bitop_A0: @RES 4,B
+	OP_RES gb_bcde, byte_b, 4
+	NEXT 8
+	
+bitop_A1: @RES 4,C
+	OP_RES gb_bcde, byte_c, 4
+	NEXT 8
+	
+bitop_A2: @RES 4,D
+	OP_RES gb_bcde, byte_d, 4
+	NEXT 8
+	
+bitop_A3: @RES 4,E
+	OP_RES gb_bcde, byte_e, 4
+	NEXT 8
+	
+bitop_A4: @RES 4,H
+	OP_RES gb_hl, byte_h, 4
+	NEXT 8
+	
+bitop_A5: @RES 4,L
+	OP_RES gb_hl, byte_l, 4
+	NEXT 8
+	
+bitop_A6: @RES 4,(HL)
+	READHL
+	OP_RES r0, 0, 4
+	WRITEHL
+	NEXT 16
+	
+bitop_A7: @RES 4,A
+	OP_RES gb_a, byte_a, 4
+	NEXT 8
+	
+bitop_A8: @RES 5,B
+	OP_RES gb_bcde, byte_b, 5
+	NEXT 8
+	
+bitop_A9: @RES 5,C
+	OP_RES gb_bcde, byte_c, 5
+	NEXT 8
+	
+bitop_AA: @RES 5,D
+	OP_RES gb_bcde, byte_d, 5
+	NEXT 8
+	
+bitop_AB: @RES 5,E
+	OP_RES gb_bcde, byte_e, 5
+	NEXT 8
+	
+bitop_AC: @RES 5,H
+	OP_RES gb_hl, byte_h, 5
+	NEXT 8
+	
+bitop_AD: @RES 5,L
+	OP_RES gb_hl, byte_l, 5
+	NEXT 8
+	
+bitop_AE: @RES 5,(HL)
+	READHL
+	OP_RES r0, 0, 5
+	WRITEHL
+	NEXT 16
+	
+bitop_AF: @RES 5,A
+	OP_RES gb_a, byte_a, 5
+	NEXT 8
+	
+bitop_B0: @RES 6,B
+	OP_RES gb_bcde, byte_b, 6
+	NEXT 8
+	
+bitop_B1: @RES 6,C
+	OP_RES gb_bcde, byte_c, 6
+	NEXT 8
+	
+bitop_B2: @RES 6,D
+	OP_RES gb_bcde, byte_d, 6
+	NEXT 8
+	
+bitop_B3: @RES 6,E
+	OP_RES gb_bcde, byte_e, 6
+	NEXT 8
+	
+bitop_B4: @RES 6,H
+	OP_RES gb_hl, byte_h, 6
+	NEXT 8
+	
+bitop_B5: @RES 6,L
+	OP_RES gb_hl, byte_l, 6
+	NEXT 8
+	
+bitop_B6: @RES 6,(HL)
+	READHL
+	OP_RES r0, 0, 6
+	WRITEHL
+	NEXT 16
+	
+bitop_B7: @RES 6,A
+	OP_RES gb_a, byte_a, 6
+	NEXT 8
+	
+bitop_B8: @RES 7,B
+	OP_RES gb_bcde, byte_b, 7
+	NEXT 8
+	
+bitop_B9: @RES 7,C
+	OP_RES gb_bcde, byte_c, 7
+	NEXT 8
+	
+bitop_BA: @RES 7,D
+	OP_RES gb_bcde, byte_d, 7
+	NEXT 8
+	
+bitop_BB: @RES 7,E
+	OP_RES gb_bcde, byte_e, 7
+	NEXT 8
+	
+bitop_BC: @RES 7,H
+	OP_RES gb_hl, byte_h, 7
+	NEXT 8
+	
+bitop_BD: @RES 7,L
+	OP_RES gb_hl, byte_l, 7
+	NEXT 8
+	
+bitop_BE: @RES 7,(HL)
+	READHL
+	OP_RES r0, 0, 7
+	WRITEHL
+	NEXT 16
+	
+bitop_BF: @RES 7,A
+	OP_RES gb_a, byte_a, 7
+	NEXT 8
+	
+bitop_C0: @SET 0,B
+	OP_SET gb_bcde, byte_b, 0
+	NEXT 8
+	
+bitop_C1: @SET 0,C
+	OP_SET gb_bcde, byte_c, 0
+	NEXT 8
+	
+bitop_C2: @SET 0,D
+	OP_SET gb_bcde, byte_d, 0
+	NEXT 8
+	
+bitop_C3: @SET 0,E
+	OP_SET gb_bcde, byte_e, 0
+	NEXT 8
+	
+bitop_C4: @SET 0,H
+	OP_SET gb_hl, byte_h, 0
+	NEXT 8
+	
+bitop_C5: @SET 0,L
+	OP_SET gb_hl, byte_l, 0
+	NEXT 8
+	
+bitop_C6: @SET 0,(HL)
+	READHL
+	OP_SET r0, 0, 0
+	WRITEHL
+	NEXT 16
+	
+bitop_C7: @SET 0,A
+	OP_SET gb_a, byte_a, 0
+	NEXT 8
+	
+bitop_C8: @SET 1,B
+	OP_SET gb_bcde, byte_b, 1
+	NEXT 8
+	
+bitop_C9: @SET 1,C
+	OP_SET gb_bcde, byte_c, 1
+	NEXT 8
+	
+bitop_CA: @SET 1,D
+	OP_SET gb_bcde, byte_d, 1
+	NEXT 8
+	
+bitop_CB: @SET 1,E
+	OP_SET gb_bcde, byte_e, 1
+	NEXT 8
+	
+bitop_CC: @SET 1,H
+	OP_SET gb_hl, byte_h, 1
+	NEXT 8
+	
+bitop_CD: @SET 1,L
+	OP_SET gb_hl, byte_l, 1
+	NEXT 8
+	
+bitop_CE: @SET 1,(HL)
+	READHL
+	OP_SET r0, 0, 1
+	WRITEHL
+	NEXT 16
+	
+bitop_CF: @SET 1,A
+	OP_SET gb_a, byte_a, 1
+	NEXT 8
+	
+bitop_D0: @SET 2,B
+	OP_SET gb_bcde, byte_b, 2
+	NEXT 8
+	
+bitop_D1: @SET 2,C
+	OP_SET gb_bcde, byte_c, 2
+	NEXT 8
+	
+bitop_D2: @SET 2,D
+	OP_SET gb_bcde, byte_d, 2
+	NEXT 8
+	
+bitop_D3: @SET 2,E
+	OP_SET gb_bcde, byte_e, 2
+	NEXT 8
+	
+bitop_D4: @SET 2,H
+	OP_SET gb_hl, byte_h, 2
+	NEXT 8
+	
+bitop_D5: @SET 2,L
+	OP_SET gb_hl, byte_l, 2
+	NEXT 8
+	
+bitop_D6: @SET 2,(HL)
+	READHL
+	OP_SET r0, 0, 2
+	WRITEHL
+	NEXT 16
+	
+bitop_D7: @SET 2,A
+	OP_SET gb_a, byte_a, 2
+	NEXT 8
+	
+bitop_D8: @SET 3,B
+	OP_SET gb_bcde, byte_b, 3
+	NEXT 8
+	
+bitop_D9: @SET 3,C
+	OP_SET gb_bcde, byte_c, 3
+	NEXT 8
+	
+bitop_DA: @SET 3,D
+	OP_SET gb_bcde, byte_d, 3
+	NEXT 8
+	
+bitop_DB: @SET 3,E
+	OP_SET gb_bcde, byte_e, 3
+	NEXT 8
+	
+bitop_DC: @SET 3,H
+	OP_SET gb_hl, byte_h, 3
+	NEXT 8
+	
+bitop_DD: @SET 3,L
+	OP_SET gb_hl, byte_l, 3
+	NEXT 8
+	
+bitop_DE: @SET 3,(HL)
+	READHL
+	OP_SET r0, 0, 3
+	WRITEHL
+	NEXT 16
+	
+bitop_DF: @SET 3,A
+	OP_SET gb_a, byte_a, 3
+	NEXT 8
+	
+bitop_E0: @SET 4,B
+	OP_SET gb_bcde, byte_b, 4
+	NEXT 8
+	
+bitop_E1: @SET 4,C
+	OP_SET gb_bcde, byte_c, 4
+	NEXT 8
+	
+bitop_E2: @SET 4,D
+	OP_SET gb_bcde, byte_d, 4
+	NEXT 8
+	
+bitop_E3: @SET 4,E
+	OP_SET gb_bcde, byte_e, 4
+	NEXT 8
+	
+bitop_E4: @SET 4,H
+	OP_SET gb_hl, byte_h, 4
+	NEXT 8
+	
+bitop_E5: @SET 4,L
+	OP_SET gb_hl, byte_l, 4
+	NEXT 8
+	
+bitop_E6: @SET 4,(HL)
+	READHL
+	OP_SET r0, 0, 4
+	WRITEHL
+	NEXT 16
+	
+bitop_E7: @SET 4,A
+	OP_SET gb_a, byte_a, 4
+	NEXT 8
+	
+bitop_E8: @SET 5,B
+	OP_SET gb_bcde, byte_b, 5
+	NEXT 8
+	
+bitop_E9: @SET 5,C
+	OP_SET gb_bcde, byte_c, 5
+	NEXT 8
+	
+bitop_EA: @SET 5,D
+	OP_SET gb_bcde, byte_d, 5
+	NEXT 8
+	
+bitop_EB: @SET 5,E
+	OP_SET gb_bcde, byte_e, 5
+	NEXT 8
+	
+bitop_EC: @SET 5,H
+	OP_SET gb_hl, byte_h, 5
+	NEXT 8
+	
+bitop_ED: @SET 5,L
+	OP_SET gb_hl, byte_l, 5
+	NEXT 8
+	
+bitop_EE: @SET 5,(HL)
+	READHL
+	OP_SET r0, 0, 5
+	WRITEHL
+	NEXT 16
+	
+bitop_EF: @SET 5,A
+	OP_SET gb_a, byte_a, 5
+	NEXT 8
+	
+bitop_F0: @SET 6,B
+	OP_SET gb_bcde, byte_b, 6
+	NEXT 8
+	
+bitop_F1: @SET 6,C
+	OP_SET gb_bcde, byte_c, 6
+	NEXT 8
+	
+bitop_F2: @SET 6,D
+	OP_SET gb_bcde, byte_d, 6
+	NEXT 8
+	
+bitop_F3: @SET 6,E
+	OP_SET gb_bcde, byte_e, 6
+	NEXT 8
+	
+bitop_F4: @SET 6,H
+	OP_SET gb_hl, byte_h, 6
+	NEXT 8
+	
+bitop_F5: @SET 6,L
+	OP_SET gb_hl, byte_l, 6
+	NEXT 8
+	
+bitop_F6: @SET 6,(HL)
+	READHL
+	OP_SET r0, 0, 6
+	WRITEHL
+	NEXT 16
+	
+bitop_F7: @SET 6,A
+	OP_SET gb_a, byte_a, 6
+	NEXT 8
+	
+bitop_F8: @SET 7,B
+	OP_SET gb_bcde, byte_b, 7
+	NEXT 8
+	
+bitop_F9: @SET 7,C
+	OP_SET gb_bcde, byte_c, 7
+	NEXT 8
+	
+bitop_FA: @SET 7,D
+	OP_SET gb_bcde, byte_d, 7
+	NEXT 8
+	
+bitop_FB: @SET 7,E
+	OP_SET gb_bcde, byte_e, 7
+	NEXT 8
+	
+bitop_FC: @SET 7,H
+	OP_SET gb_hl, byte_h, 7
+	NEXT 8
+	
+bitop_FD: @SET 7,L
+	OP_SET gb_hl, byte_l, 7
+	NEXT 8
+	
+bitop_FE: @SET 7,(HL)
+	READHL
+	OP_SET r0, 0, 7
+	WRITEHL
+	NEXT 16
+	
+bitop_FF: @SET 7,A
+	OP_SET gb_a, byte_a, 7
 	NEXT 8
 	
