@@ -9,32 +9,6 @@
 	sub gb_cycles,gb_cycles,#\cycles
 .endm
 
-.macro READHL
-	mov r0,gb_hl,lsr #16
-	READMEM
-.endm
-
-.macro READMEM
-	bl read_mem
-.endm
-
-.macro READMEM_16
-	bl read_mem_16
-.endm
-
-.macro WRITEHL
-	mov r0,gb_hl,lsr #16
-	WRITEMEM
-.endm
-
-.macro WRITEMEM
-	bl write_mem
-.endm
-
-.macro WRITEMEM_16
-	bl write_mem_16
-.endm
-
 .macro OP_INC8 reg, byte
 	.if \byte < 3
 		mov \reg,\reg,ror #8 + \byte*8
@@ -292,25 +266,29 @@
 	.endif
 .endm
 	
-read_mem:
-	@Placeholder yay!
-	bx lr
+original_sp:
+	.long 0
 	
-read_mem_16:
-	@Placeholder yay!
-	bx lr
+run_cpu:
+	stmfd sp!,{r1,r4-r11,lr}
+	str sp,original_sp
 	
-write_mem:
-	@Placeholder yay!
-	bx lr
-	
-write_mem_16:
-	@Placeholder yay!
-	bx lr
+	adrl sp,opcode_table
+	mov gb_data,r0
+	mov gb_cycles,r1
+	add r0,gb_data,#gb_a_backup
+	ldmia r0,{gb_a-gb_pc}
+	NEXT 0
 	
 cpu_done:
 	sub gb_pc,#1
-	bx lr
+	add r0,gb_data,#gb_a_backup
+	stmia r0,{gb_a-gb_pc}
+	
+	ldr sp,original_sp
+	ldr r0,[sp],#4
+	sub r0,r0,gb_cycles
+	ldmfd sp!,{r4-r11,pc}
 
 opcode_00: @NOP
 	NEXT 4
@@ -1363,6 +1341,263 @@ opcode_CB: @BITWISE INSTRUCTION PREFIX
 	ldrb r0,[gb_pc],#1
 	ldr r0,[pc,r0,lsl #2]
 	add pc,pc,r0
+	.long bitop_00 - cb_offset
+cb_offset:
+	.long bitop_01 - cb_offset
+	.long bitop_02 - cb_offset
+	.long bitop_03 - cb_offset
+	.long bitop_04 - cb_offset
+	.long bitop_05 - cb_offset
+	.long bitop_06 - cb_offset
+	.long bitop_07 - cb_offset
+	.long bitop_08 - cb_offset
+	.long bitop_09 - cb_offset
+	.long bitop_0A - cb_offset
+	.long bitop_0B - cb_offset
+	.long bitop_0C - cb_offset
+	.long bitop_0D - cb_offset
+	.long bitop_0E - cb_offset
+	.long bitop_0F - cb_offset
+	.long bitop_10 - cb_offset
+	.long bitop_11 - cb_offset
+	.long bitop_12 - cb_offset
+	.long bitop_13 - cb_offset
+	.long bitop_14 - cb_offset
+	.long bitop_15 - cb_offset
+	.long bitop_16 - cb_offset
+	.long bitop_17 - cb_offset
+	.long bitop_18 - cb_offset
+	.long bitop_19 - cb_offset
+	.long bitop_1A - cb_offset
+	.long bitop_1B - cb_offset
+	.long bitop_1C - cb_offset
+	.long bitop_1D - cb_offset
+	.long bitop_1E - cb_offset
+	.long bitop_1F - cb_offset
+	.long bitop_20 - cb_offset
+	.long bitop_21 - cb_offset
+	.long bitop_22 - cb_offset
+	.long bitop_23 - cb_offset
+	.long bitop_24 - cb_offset
+	.long bitop_25 - cb_offset
+	.long bitop_26 - cb_offset
+	.long bitop_27 - cb_offset
+	.long bitop_28 - cb_offset
+	.long bitop_29 - cb_offset
+	.long bitop_2A - cb_offset
+	.long bitop_2B - cb_offset
+	.long bitop_2C - cb_offset
+	.long bitop_2D - cb_offset
+	.long bitop_2E - cb_offset
+	.long bitop_2F - cb_offset
+	.long bitop_30 - cb_offset
+	.long bitop_31 - cb_offset
+	.long bitop_32 - cb_offset
+	.long bitop_33 - cb_offset
+	.long bitop_34 - cb_offset
+	.long bitop_35 - cb_offset
+	.long bitop_36 - cb_offset
+	.long bitop_37 - cb_offset
+	.long bitop_38 - cb_offset
+	.long bitop_39 - cb_offset
+	.long bitop_3A - cb_offset
+	.long bitop_3B - cb_offset
+	.long bitop_3C - cb_offset
+	.long bitop_3D - cb_offset
+	.long bitop_3E - cb_offset
+	.long bitop_3F - cb_offset
+	.long bitop_40 - cb_offset
+	.long bitop_41 - cb_offset
+	.long bitop_42 - cb_offset
+	.long bitop_43 - cb_offset
+	.long bitop_44 - cb_offset
+	.long bitop_45 - cb_offset
+	.long bitop_46 - cb_offset
+	.long bitop_47 - cb_offset
+	.long bitop_48 - cb_offset
+	.long bitop_49 - cb_offset
+	.long bitop_4A - cb_offset
+	.long bitop_4B - cb_offset
+	.long bitop_4C - cb_offset
+	.long bitop_4D - cb_offset
+	.long bitop_4E - cb_offset
+	.long bitop_4F - cb_offset
+	.long bitop_50 - cb_offset
+	.long bitop_51 - cb_offset
+	.long bitop_52 - cb_offset
+	.long bitop_53 - cb_offset
+	.long bitop_54 - cb_offset
+	.long bitop_55 - cb_offset
+	.long bitop_56 - cb_offset
+	.long bitop_57 - cb_offset
+	.long bitop_58 - cb_offset
+	.long bitop_59 - cb_offset
+	.long bitop_5A - cb_offset
+	.long bitop_5B - cb_offset
+	.long bitop_5C - cb_offset
+	.long bitop_5D - cb_offset
+	.long bitop_5E - cb_offset
+	.long bitop_5F - cb_offset
+	.long bitop_60 - cb_offset
+	.long bitop_61 - cb_offset
+	.long bitop_62 - cb_offset
+	.long bitop_63 - cb_offset
+	.long bitop_64 - cb_offset
+	.long bitop_65 - cb_offset
+	.long bitop_66 - cb_offset
+	.long bitop_67 - cb_offset
+	.long bitop_68 - cb_offset
+	.long bitop_69 - cb_offset
+	.long bitop_6A - cb_offset
+	.long bitop_6B - cb_offset
+	.long bitop_6C - cb_offset
+	.long bitop_6D - cb_offset
+	.long bitop_6E - cb_offset
+	.long bitop_6F - cb_offset
+	.long bitop_70 - cb_offset
+	.long bitop_71 - cb_offset
+	.long bitop_72 - cb_offset
+	.long bitop_73 - cb_offset
+	.long bitop_74 - cb_offset
+	.long bitop_75 - cb_offset
+	.long bitop_76 - cb_offset
+	.long bitop_77 - cb_offset
+	.long bitop_78 - cb_offset
+	.long bitop_79 - cb_offset
+	.long bitop_7A - cb_offset
+	.long bitop_7B - cb_offset
+	.long bitop_7C - cb_offset
+	.long bitop_7D - cb_offset
+	.long bitop_7E - cb_offset
+	.long bitop_7F - cb_offset
+	.long bitop_80 - cb_offset
+	.long bitop_81 - cb_offset
+	.long bitop_82 - cb_offset
+	.long bitop_83 - cb_offset
+	.long bitop_84 - cb_offset
+	.long bitop_85 - cb_offset
+	.long bitop_86 - cb_offset
+	.long bitop_87 - cb_offset
+	.long bitop_88 - cb_offset
+	.long bitop_89 - cb_offset
+	.long bitop_8A - cb_offset
+	.long bitop_8B - cb_offset
+	.long bitop_8C - cb_offset
+	.long bitop_8D - cb_offset
+	.long bitop_8E - cb_offset
+	.long bitop_8F - cb_offset
+	.long bitop_90 - cb_offset
+	.long bitop_91 - cb_offset
+	.long bitop_92 - cb_offset
+	.long bitop_93 - cb_offset
+	.long bitop_94 - cb_offset
+	.long bitop_95 - cb_offset
+	.long bitop_96 - cb_offset
+	.long bitop_97 - cb_offset
+	.long bitop_98 - cb_offset
+	.long bitop_99 - cb_offset
+	.long bitop_9A - cb_offset
+	.long bitop_9B - cb_offset
+	.long bitop_9C - cb_offset
+	.long bitop_9D - cb_offset
+	.long bitop_9E - cb_offset
+	.long bitop_9F - cb_offset
+	.long bitop_A0 - cb_offset
+	.long bitop_A1 - cb_offset
+	.long bitop_A2 - cb_offset
+	.long bitop_A3 - cb_offset
+	.long bitop_A4 - cb_offset
+	.long bitop_A5 - cb_offset
+	.long bitop_A6 - cb_offset
+	.long bitop_A7 - cb_offset
+	.long bitop_A8 - cb_offset
+	.long bitop_A9 - cb_offset
+	.long bitop_AA - cb_offset
+	.long bitop_AB - cb_offset
+	.long bitop_AC - cb_offset
+	.long bitop_AD - cb_offset
+	.long bitop_AE - cb_offset
+	.long bitop_AF - cb_offset
+	.long bitop_B0 - cb_offset
+	.long bitop_B1 - cb_offset
+	.long bitop_B2 - cb_offset
+	.long bitop_B3 - cb_offset
+	.long bitop_B4 - cb_offset
+	.long bitop_B5 - cb_offset
+	.long bitop_B6 - cb_offset
+	.long bitop_B7 - cb_offset
+	.long bitop_B8 - cb_offset
+	.long bitop_B9 - cb_offset
+	.long bitop_BA - cb_offset
+	.long bitop_BB - cb_offset
+	.long bitop_BC - cb_offset
+	.long bitop_BD - cb_offset
+	.long bitop_BE - cb_offset
+	.long bitop_BF - cb_offset
+	.long bitop_C0 - cb_offset
+	.long bitop_C1 - cb_offset
+	.long bitop_C2 - cb_offset
+	.long bitop_C3 - cb_offset
+	.long bitop_C4 - cb_offset
+	.long bitop_C5 - cb_offset
+	.long bitop_C6 - cb_offset
+	.long bitop_C7 - cb_offset
+	.long bitop_C8 - cb_offset
+	.long bitop_C9 - cb_offset
+	.long bitop_CA - cb_offset
+	.long bitop_CB - cb_offset
+	.long bitop_CC - cb_offset
+	.long bitop_CD - cb_offset
+	.long bitop_CE - cb_offset
+	.long bitop_CF - cb_offset
+	.long bitop_D0 - cb_offset
+	.long bitop_D1 - cb_offset
+	.long bitop_D2 - cb_offset
+	.long bitop_D3 - cb_offset
+	.long bitop_D4 - cb_offset
+	.long bitop_D5 - cb_offset
+	.long bitop_D6 - cb_offset
+	.long bitop_D7 - cb_offset
+	.long bitop_D8 - cb_offset
+	.long bitop_D9 - cb_offset
+	.long bitop_DA - cb_offset
+	.long bitop_DB - cb_offset
+	.long bitop_DC - cb_offset
+	.long bitop_DD - cb_offset
+	.long bitop_DE - cb_offset
+	.long bitop_DF - cb_offset
+	.long bitop_E0 - cb_offset
+	.long bitop_E1 - cb_offset
+	.long bitop_E2 - cb_offset
+	.long bitop_E3 - cb_offset
+	.long bitop_E4 - cb_offset
+	.long bitop_E5 - cb_offset
+	.long bitop_E6 - cb_offset
+	.long bitop_E7 - cb_offset
+	.long bitop_E8 - cb_offset
+	.long bitop_E9 - cb_offset
+	.long bitop_EA - cb_offset
+	.long bitop_EB - cb_offset
+	.long bitop_EC - cb_offset
+	.long bitop_ED - cb_offset
+	.long bitop_EE - cb_offset
+	.long bitop_EF - cb_offset
+	.long bitop_F0 - cb_offset
+	.long bitop_F1 - cb_offset
+	.long bitop_F2 - cb_offset
+	.long bitop_F3 - cb_offset
+	.long bitop_F4 - cb_offset
+	.long bitop_F5 - cb_offset
+	.long bitop_F6 - cb_offset
+	.long bitop_F7 - cb_offset
+	.long bitop_F8 - cb_offset
+	.long bitop_F9 - cb_offset
+	.long bitop_FA - cb_offset
+	.long bitop_FB - cb_offset
+	.long bitop_FC - cb_offset
+	.long bitop_FD - cb_offset
+	.long bitop_FE - cb_offset
+	.long bitop_FF - cb_offset
 	
 opcode_CC: @CALL Z,mn
 	tst gb_f,#flags_z
@@ -1602,9 +1837,9 @@ opcode_EF: @RST 28h
 	
 opcode_F0: @LD A,($FF00+n)
 	ldrb r0,[gb_pc],#1
-	orr r0,r0,#0xFF00
-	READMEM
-	mov gb_a,r0,lsl #24
+	sub r1,gb_data,#0x100
+	ldrb gb_a,[r1,r0]
+	mov gb_a,gb_a,lsl #24
 	NEXT 12
 	
 opcode_F1: @POP AF
@@ -1617,10 +1852,9 @@ opcode_F1: @POP AF
 	NEXT 12
 	
 opcode_F2: @LD A,($FF00+C)
-	mov r0,gb_bcde,lsr #16
-	orr r0,r0,#0xFF00
-	READMEM
-	mov gb_a,r0,lsl #24
+	orr r0,gb_bcde,#0xFF000000
+	ldrb gb_a,[gb_data,r0,asr #16]
+	mov gb_a,gb_a,lsl #24
 	NEXT 8
 	
 opcode_F3: @DI
@@ -3133,4 +3367,262 @@ bitop_FE: @SET 7,(HL)
 bitop_FF: @SET 7,A
 	OP_SET gb_a, byte_a, 7
 	NEXT 8
+	
+opcode_table:
+	.long opcode_00 - main
+	.long opcode_01 - main
+	.long opcode_02 - main
+	.long opcode_03 - main
+	.long opcode_04 - main
+	.long opcode_05 - main
+	.long opcode_06 - main
+	.long opcode_07 - main
+	.long opcode_08 - main
+	.long opcode_09 - main
+	.long opcode_0A - main
+	.long opcode_0B - main
+	.long opcode_0C - main
+	.long opcode_0D - main
+	.long opcode_0E - main
+	.long opcode_0F - main
+	.long opcode_10 - main
+	.long opcode_11 - main
+	.long opcode_12 - main
+	.long opcode_13 - main
+	.long opcode_14 - main
+	.long opcode_15 - main
+	.long opcode_16 - main
+	.long opcode_17 - main
+	.long opcode_18 - main
+	.long opcode_19 - main
+	.long opcode_1A - main
+	.long opcode_1B - main
+	.long opcode_1C - main
+	.long opcode_1D - main
+	.long opcode_1E - main
+	.long opcode_1F - main
+	.long opcode_20 - main
+	.long opcode_21 - main
+	.long opcode_22 - main
+	.long opcode_23 - main
+	.long opcode_24 - main
+	.long opcode_25 - main
+	.long opcode_26 - main
+	.long opcode_27 - main
+	.long opcode_28 - main
+	.long opcode_29 - main
+	.long opcode_2A - main
+	.long opcode_2B - main
+	.long opcode_2C - main
+	.long opcode_2D - main
+	.long opcode_2E - main
+	.long opcode_2F - main
+	.long opcode_30 - main
+	.long opcode_31 - main
+	.long opcode_32 - main
+	.long opcode_33 - main
+	.long opcode_34 - main
+	.long opcode_35 - main
+	.long opcode_36 - main
+	.long opcode_37 - main
+	.long opcode_38 - main
+	.long opcode_39 - main
+	.long opcode_3A - main
+	.long opcode_3B - main
+	.long opcode_3C - main
+	.long opcode_3D - main
+	.long opcode_3E - main
+	.long opcode_3F - main
+	.long opcode_40 - main
+	.long opcode_41 - main
+	.long opcode_42 - main
+	.long opcode_43 - main
+	.long opcode_44 - main
+	.long opcode_45 - main
+	.long opcode_46 - main
+	.long opcode_47 - main
+	.long opcode_48 - main
+	.long opcode_49 - main
+	.long opcode_4A - main
+	.long opcode_4B - main
+	.long opcode_4C - main
+	.long opcode_4D - main
+	.long opcode_4E - main
+	.long opcode_4F - main
+	.long opcode_50 - main
+	.long opcode_51 - main
+	.long opcode_52 - main
+	.long opcode_53 - main
+	.long opcode_54 - main
+	.long opcode_55 - main
+	.long opcode_56 - main
+	.long opcode_57 - main
+	.long opcode_58 - main
+	.long opcode_59 - main
+	.long opcode_5A - main
+	.long opcode_5B - main
+	.long opcode_5C - main
+	.long opcode_5D - main
+	.long opcode_5E - main
+	.long opcode_5F - main
+	.long opcode_60 - main
+	.long opcode_61 - main
+	.long opcode_62 - main
+	.long opcode_63 - main
+	.long opcode_64 - main
+	.long opcode_65 - main
+	.long opcode_66 - main
+	.long opcode_67 - main
+	.long opcode_68 - main
+	.long opcode_69 - main
+	.long opcode_6A - main
+	.long opcode_6B - main
+	.long opcode_6C - main
+	.long opcode_6D - main
+	.long opcode_6E - main
+	.long opcode_6F - main
+	.long opcode_70 - main
+	.long opcode_71 - main
+	.long opcode_72 - main
+	.long opcode_73 - main
+	.long opcode_74 - main
+	.long opcode_75 - main
+	.long opcode_76 - main
+	.long opcode_77 - main
+	.long opcode_78 - main
+	.long opcode_79 - main
+	.long opcode_7A - main
+	.long opcode_7B - main
+	.long opcode_7C - main
+	.long opcode_7D - main
+	.long opcode_7E - main
+	.long opcode_7F - main
+	.long opcode_80 - main
+	.long opcode_81 - main
+	.long opcode_82 - main
+	.long opcode_83 - main
+	.long opcode_84 - main
+	.long opcode_85 - main
+	.long opcode_86 - main
+	.long opcode_87 - main
+	.long opcode_88 - main
+	.long opcode_89 - main
+	.long opcode_8A - main
+	.long opcode_8B - main
+	.long opcode_8C - main
+	.long opcode_8D - main
+	.long opcode_8E - main
+	.long opcode_8F - main
+	.long opcode_90 - main
+	.long opcode_91 - main
+	.long opcode_92 - main
+	.long opcode_93 - main
+	.long opcode_94 - main
+	.long opcode_95 - main
+	.long opcode_96 - main
+	.long opcode_97 - main
+	.long opcode_98 - main
+	.long opcode_99 - main
+	.long opcode_9A - main
+	.long opcode_9B - main
+	.long opcode_9C - main
+	.long opcode_9D - main
+	.long opcode_9E - main
+	.long opcode_9F - main
+	.long opcode_A0 - main
+	.long opcode_A1 - main
+	.long opcode_A2 - main
+	.long opcode_A3 - main
+	.long opcode_A4 - main
+	.long opcode_A5 - main
+	.long opcode_A6 - main
+	.long opcode_A7 - main
+	.long opcode_A8 - main
+	.long opcode_A9 - main
+	.long opcode_AA - main
+	.long opcode_AB - main
+	.long opcode_AC - main
+	.long opcode_AD - main
+	.long opcode_AE - main
+	.long opcode_AF - main
+	.long opcode_B0 - main
+	.long opcode_B1 - main
+	.long opcode_B2 - main
+	.long opcode_B3 - main
+	.long opcode_B4 - main
+	.long opcode_B5 - main
+	.long opcode_B6 - main
+	.long opcode_B7 - main
+	.long opcode_B8 - main
+	.long opcode_B9 - main
+	.long opcode_BA - main
+	.long opcode_BB - main
+	.long opcode_BC - main
+	.long opcode_BD - main
+	.long opcode_BE - main
+	.long opcode_BF - main
+	.long opcode_C0 - main
+	.long opcode_C1 - main
+	.long opcode_C2 - main
+	.long opcode_C3 - main
+	.long opcode_C4 - main
+	.long opcode_C5 - main
+	.long opcode_C6 - main
+	.long opcode_C7 - main
+	.long opcode_C8 - main
+	.long opcode_C9 - main
+	.long opcode_CA - main
+	.long opcode_CB - main
+	.long opcode_CC - main
+	.long opcode_CD - main
+	.long opcode_CE - main
+	.long opcode_CF - main
+	.long opcode_D0 - main
+	.long opcode_D1 - main
+	.long opcode_D2 - main
+	.long opcode_D3 - main
+	.long opcode_D4 - main
+	.long opcode_D5 - main
+	.long opcode_D6 - main
+	.long opcode_D7 - main
+	.long opcode_D8 - main
+	.long opcode_D9 - main
+	.long opcode_DA - main
+	.long opcode_DB - main
+	.long opcode_DC - main
+	.long opcode_DD - main
+	.long opcode_DE - main
+	.long opcode_DF - main
+	.long opcode_E0 - main
+	.long opcode_E1 - main
+	.long opcode_E2 - main
+	.long opcode_E3 - main
+	.long opcode_E4 - main
+	.long opcode_E5 - main
+	.long opcode_E6 - main
+	.long opcode_E7 - main
+	.long opcode_E8 - main
+	.long opcode_E9 - main
+	.long opcode_EA - main
+	.long opcode_EB - main
+	.long opcode_EC - main
+	.long opcode_ED - main
+	.long opcode_EE - main
+	.long opcode_EF - main
+	.long opcode_F0 - main
+	.long opcode_F1 - main
+	.long opcode_F2 - main
+	.long opcode_F3 - main
+	.long opcode_F4 - main
+	.long opcode_F5 - main
+	.long opcode_F6 - main
+	.long opcode_F7 - main
+	.long opcode_F8 - main
+	.long opcode_F9 - main
+	.long opcode_FA - main
+	.long opcode_FB - main
+	.long opcode_FC - main
+	.long opcode_FD - main
+	.long opcode_FE - main
+	.long opcode_FF - main
 	

@@ -16,7 +16,18 @@
 .equ mem_map_E000, 0x038
 .equ mem_map_F000, 0x03C
 .equ pc_base, 0x040
-.equ IFF, 0x044
+.equ gb_rom, 0x044
+.equ gb_wram, 0x048
+.equ gb_sram, 0x04C
+.equ gb_vram, 0x050
+.equ gb_fram, 0x054
+.equ IFF, 0x058
+.equ gb_a_backup, 0x05C
+.equ gb_bcde_backup, 0x060
+.equ gb_hl_backup, 0x064
+.equ gb_sp_backup, 0x066
+.equ gb_f_backup, 0x06C
+.equ gb_pc_backup, 0x070
 
 
 /* GBZ80 register aliases */

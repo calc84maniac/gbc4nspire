@@ -12,7 +12,7 @@ vpath %.tns  ../../res/$(NSPIRE_HARDWARE)
 
 all: gbc4nspire.tns
 
-gbc4nspire.o: gbc4nspire.S cpu.S defines.inc
+gbc4nspire.o: gbc4nspire.S cpu.S memory.S defines.inc
 	$(GCC) $(GCCFLAGS) -c $<
 	
 utils.o: utils.c defines.h

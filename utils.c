@@ -1,6 +1,8 @@
 #include <os.h>
 #include "defines.h"
 
+char my_rom[32768] = {0x21,0x80,0xFF,0x35,0x20,0xFD,0x23,0x18,0xFA};
+
 struct gb_data
 {
 	char* mem_map_0000;
@@ -21,9 +23,64 @@ struct gb_data
 	char* mem_map_F000;
 	
 	char* pc_base;
+	
+	char* gb_rom;
+	char* gb_wram;
+	char* gb_sram;
+	char* gb_vram;
+	char* gb_fram;
+	
 	int IFF;
 	
+	unsigned gb_a_backup;
+	unsigned gb_bcde_backup;
+	unsigned gb_hl_backup;
+	unsigned gb_sp_backup;
+	unsigned gb_f_backup;
+	char* gb_pc_backup;
 };
+	
+struct gb_data* create_cpu()
+{
+	struct gb_data* cpu;
+	char* fram;
+	fram = malloc(4*1024 + sizeof(struct gb_data));
+	cpu = (struct gb_data*)(fram + 4*1024);
+	
+	cpu->gb_rom = my_rom;
+	cpu->gb_wram = malloc(8*1024);
+	cpu->gb_sram = malloc(8*1024);
+	cpu->gb_vram = malloc(8*1024);
+	cpu->gb_fram = fram;
+	
+	cpu->pc_base = cpu->mem_map_0000 = cpu->mem_map_1000 = cpu->mem_map_2000 = cpu->mem_map_3000
+	= cpu->mem_map_4000 = cpu->mem_map_5000 = cpu->mem_map_6000 = cpu->mem_map_7000 = cpu->gb_rom;
+	
+	cpu->mem_map_8000 = cpu->mem_map_9000 = cpu->gb_vram - 0x8000;
+	
+	cpu->mem_map_A000 = cpu->mem_map_B000 = cpu->gb_sram - 0xA000;
+	
+	cpu->mem_map_C000 = cpu->mem_map_D000 = cpu->gb_wram - 0xC000;
+	
+	cpu->mem_map_E000 = cpu->gb_wram - 0xE000;
+	
+	cpu->mem_map_F000 = cpu->gb_fram - 0xF000;
+	
+	cpu->IFF = 0;
+	
+	cpu->gb_a_backup = cpu->gb_bcde_backup = cpu->gb_hl_backup = cpu->gb_sp_backup = cpu->gb_f_backup = 0;
+	cpu->gb_pc_backup = cpu->pc_base + 0x0000;
+	
+	return cpu;
+}
+	
+void delete_cpu(struct gb_data* cpu)
+{
+	free(cpu->gb_wram);
+	free(cpu->gb_sram);
+	free(cpu->gb_vram);
+	free(cpu->gb_fram); //This also frees the cpu object itself
+}
 	
 struct os_state
 {
